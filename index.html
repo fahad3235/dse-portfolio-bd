@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSE Portfolio BD</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1 data-i18n="appTitle">DSE Portfolio BD</h1>
+  <span class="tag" data-i18n="appTag">Dhaka Stock Exchange portfolio tracker - offline, yours only</span>
+  <span class="spacer"></span>
+  <button id="lang-btn" type="button" data-i18n="langBtn">Bangla</button>
+</header>
+
+<nav class="tabs" aria-label="Sections">
+  <button type="button" data-tab="dashboard" class="active" data-i18n="tabDashboard">Dashboard</button>
+  <button type="button" data-tab="holdings" data-i18n="tabHoldings">Holdings</button>
+  <button type="button" data-tab="dividends" data-i18n="tabDividends">Dividends</button>
+  <button type="button" data-tab="watchlist" data-i18n="tabWatchlist">Watchlist</button>
+  <button type="button" data-tab="trade" data-i18n="tabTrade">Trade Calc</button>
+  <button type="button" data-tab="data" data-i18n="tabData">Data</button>
+</nav>
+
+<main>
+  <!-- DASHBOARD -->
+  <section data-panel="dashboard">
+    <div class="stats">
+      <div class="stat"><div class="label" data-i18n="statInvested">Total invested</div><div class="stat-num" id="stat-invested">-</div></div>
+      <div class="stat"><div class="label" data-i18n="statValue">Current value</div><div class="stat-num" id="stat-value">-</div></div>
+      <div class="stat"><div class="label" data-i18n="statGain">Total gain / loss</div><div class="stat-num" id="stat-gain">-</div><div class="sub" id="stat-gain-pct">-</div></div>
+      <div class="stat"><div class="label" data-i18n="statDiv">Dividend income</div><div class="stat-num" id="stat-div">-</div></div>
+      <div class="stat"><div class="label" data-i18n="statCount">Holdings</div><div class="stat-num" id="stat-count">0</div></div>
+      <div class="stat"><div class="label" data-i18n="bestHolding">Best holding</div><div class="stat-num" id="best-holding">-</div></div>
+      <div class="stat"><div class="label" data-i18n="worstHolding">Worst holding</div><div class="stat-num" id="worst-holding">-</div></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="allocTitle">Sector allocation (share of current value)</h2>
+      <div id="alloc-host"></div>
+    </div>
+  </section>
+
+  <!-- HOLDINGS -->
+  <section data-panel="holdings" hidden>
+    <div class="card">
+      <h2 id="h-form-title" data-i18n="addHolding">Add holding</h2>
+      <form id="h-form" class="grid" novalidate>
+        <label><span data-i18n="fTicker">Ticker</span><input id="h-ticker" type="text" maxlength="12" data-i18n-ph="phTicker" placeholder="e.g. GP" autocomplete="off"></label>
+        <label><span data-i18n="fCompany">Company name (optional)</span><input id="h-company" type="text" data-i18n-ph="phCompany" placeholder="e.g. Grameenphone"></label>
+        <label><span data-i18n="fSector">Sector</span><select id="h-sector"></select></label>
+        <label><span data-i18n="fShares">Shares</span><input id="h-shares" type="number" min="1" step="1" data-i18n-ph="phShares" placeholder="e.g. 100"></label>
+        <label><span data-i18n="fAvgBuy">Avg buy price</span><input id="h-avg" type="text" inputmode="decimal" data-i18n-ph="phPrice" placeholder="e.g. 320.50"></label>
+        <label><span data-i18n="fCurrent">Current price</span><input id="h-current" type="text" inputmode="decimal" data-i18n-ph="phPrice" placeholder="e.g. 345.50"></label>
+        <label><span data-i18n="fBuyDate">Buy date (optional)</span><input id="h-date" type="date"></label>
+      </form>
+      <p class="err" id="h-error" role="alert"></p>
+      <p>
+        <button type="submit" form="h-form" class="btn" id="h-submit" data-i18n="addHolding">Add holding</button>
+        <button type="button" class="btn ghost" id="h-cancel" hidden data-i18n="cancelEdit">Cancel edit</button>
+      </p>
+    </div>
+    <div class="card">
+      <h2 data-i18n="tabHoldings">Holdings</h2>
+      <p class="empty" id="holdings-empty" data-i18n="noHoldings">No holdings yet. Add your first holding on the Holdings tab.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-i18n="colTicker">Ticker</th><th data-i18n="colCompany">Company</th>
+            <th data-i18n="colSector">Sector</th><th data-i18n="colShares">Shares</th>
+            <th data-i18n="colAvgBuy">Avg buy</th><th data-i18n="colCurrent">Current</th>
+            <th data-i18n="colInvested">Invested</th><th data-i18n="colValue">Value</th>
+            <th data-i18n="colGain">Gain / loss</th><th data-i18n="colDiv">Dividends</th>
+            <th data-i18n="colActions">Actions</th>
+          </tr></thead>
+          <tbody id="holdings-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIVIDENDS -->
+  <section data-panel="dividends" hidden>
+    <div class="card">
+      <h2 data-i18n="divTitle">Record a dividend</h2>
+      <form id="d-form" class="grid" novalidate>
+        <label><span data-i18n="divHolding">Holding</span><select id="d-holding"></select></label>
+        <label><span data-i18n="divType">Type</span>
+          <select id="d-type">
+            <option value="cash" data-i18n="divCash">Cash dividend</option>
+            <option value="stock" data-i18n="divStock">Stock dividend (bonus shares)</option>
+          </select>
+        </label>
+        <label id="d-amount-wrap"><span data-i18n="divAmount">Cash amount</span><input id="d-amount" type="text" inputmode="decimal" data-i18n-ph="phPrice" placeholder="e.g. 1000.00"></label>
+        <label id="d-pct-wrap" hidden><span data-i18n="divPct">Stock dividend (%)</span><input id="d-pct" type="number" min="0.01" max="100" step="0.01" placeholder="e.g. 10"></label>
+        <label><span data-i18n="divDate">Date</span><input id="d-date" type="date"></label>
+        <label><span data-i18n="divNote">Note (optional)</span><input id="d-note" type="text"></label>
+      </form>
+      <p class="err" id="d-error" role="alert"></p>
+      <p class="ok" id="d-msg"></p>
+      <p><button type="submit" form="d-form" class="btn" data-i18n="divAdd">Add dividend</button></p>
+    </div>
+    <div class="card">
+      <h2 data-i18n="tabDividends">Dividends</h2>
+      <p class="empty" id="div-empty" data-i18n="noDividends">No dividends recorded yet.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-i18n="colTicker">Ticker</th><th data-i18n="colDivType">Type</th>
+            <th data-i18n="colDivDetail">Detail</th><th data-i18n="colDivDate">Date</th>
+            <th data-i18n="colDivNote">Note</th><th data-i18n="colActions">Actions</th>
+          </tr></thead>
+          <tbody id="div-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- WATCHLIST -->
+  <section data-panel="watchlist" hidden>
+    <div class="card">
+      <h2 data-i18n="watchTitle">Add to watchlist</h2>
+      <form id="w-form" class="grid" novalidate>
+        <label><span data-i18n="wTicker">Ticker</span><input id="w-ticker" type="text" maxlength="12" data-i18n-ph="phTicker" placeholder="e.g. BATBC" autocomplete="off"></label>
+        <label><span data-i18n="wTarget">Target price</span><input id="w-target" type="text" inputmode="decimal" data-i18n-ph="phPrice" placeholder="e.g. 400.00"></label>
+        <label><span data-i18n="wNote">Note (optional)</span><input id="w-note" type="text"></label>
+      </form>
+      <p class="err" id="w-error" role="alert"></p>
+      <p><button type="submit" form="w-form" class="btn" data-i18n="wAdd">Add to watchlist</button></p>
+    </div>
+    <div class="card">
+      <h2 data-i18n="tabWatchlist">Watchlist</h2>
+      <p class="empty" id="watch-empty" data-i18n="noWatch">Watchlist is empty. Add a ticker to watch.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-i18n="colTicker">Ticker</th><th data-i18n="colTarget">Target</th>
+            <th data-i18n="colWCurrent">Current price</th><th data-i18n="colStatus">Status</th>
+            <th data-i18n="colDivNote">Note</th><th data-i18n="colActions">Actions</th>
+          </tr></thead>
+          <tbody id="watch-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRADE CALC -->
+  <section data-panel="trade" hidden>
+    <div class="card">
+      <h2 data-i18n="tradeTitle">Trade calculator</h2>
+      <form id="t-form" class="grid" novalidate onsubmit="return false">
+        <label><span data-i18n="tSide">Side</span>
+          <select id="t-side">
+            <option value="buy" data-i18n="tBuy">Buy</option>
+            <option value="sell" data-i18n="tSell">Sell</option>
+          </select>
+        </label>
+        <label><span data-i18n="tHolding">Holding (optional - prefills price)</span><select id="t-holding"></select></label>
+        <label><span data-i18n="tShares">Shares</span><input id="t-shares" type="number" min="1" step="1" placeholder="e.g. 100"></label>
+        <label><span data-i18n="tPrice">Price per share</span><input id="t-price" type="text" inputmode="decimal" data-i18n-ph="phPrice" placeholder="e.g. 345.50"></label>
+        <label><span data-i18n="tCommission">Commission (%)</span><input id="t-commission" type="number" min="0" step="0.01" data-i18n-ph="phCommission" placeholder="e.g. 0.40"></label>
+      </form>
+      <p class="err" id="t-error" role="alert"></p>
+      <p><button type="button" class="btn gold" id="t-calc" data-i18n="tCalc">Calculate</button></p>
+      <div id="trade-out" hidden>
+        <div class="out-row"><span data-i18n="tGross">Gross amount</span><strong id="t-gross">-</strong></div>
+        <div class="out-row"><span data-i18n="tCommissionAmt">Commission</span><strong id="t-commission-amt">-</strong></div>
+        <div class="out-row total"><span id="t-total-label">Total cost</span><strong id="t-total">-</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA -->
+  <section data-panel="data" hidden>
+    <div class="card">
+      <h2 data-i18n="dataTitle">Your data</h2>
+      <p><button type="button" class="btn" id="export-btn" data-i18n="exportBtn">Export JSON (download)</button></p>
+      <h3 data-i18n="importTitle">Import JSON</h3>
+      <p><label><span data-i18n="importFile">Choose a JSON file</span><input id="import-file" type="file" accept=".json,application/json"></label></p>
+      <p data-i18n="importOr">or paste JSON here</p>
+      <textarea id="import-text" aria-label="JSON import"></textarea>
+      <p><button type="button" class="btn" id="import-btn" data-i18n="importBtn">Import</button></p>
+      <p id="import-msg"></p>
+      <h3 data-i18n="eraseTitle">Erase everything</h3>
+      <p class="disclaimer" data-i18n="eraseHint">Type DELETE to confirm, then press Erase all data.</p>
+      <p><input id="erase-confirm" type="text" placeholder="DELETE" autocomplete="off"></p>
+      <p><button type="button" class="btn danger" id="erase-btn" data-i18n="eraseBtn">Erase all data</button></p>
+      <p id="erase-msg"></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p data-i18n="disclaimer">Personal tracker, not investment advice. Prices are user-entered, not live market data. DSE trades Sunday-Thursday; verify trading hours and broker fees with your broker / dsebd.org.</p>
+  <p data-i18n="footerNote">All data stays in this browser (localStorage). Nothing is sent anywhere.</p>
+</footer>
+
+<script src="js/core.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
